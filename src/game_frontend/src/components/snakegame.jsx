@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { snakeGame } from 'path-to-your-motoko-actor';
+import { game_backend } from '../../../declarations/game_backend';
 
 const SnakeGameComponent = () => {
   const [gameState, setGameState] = useState(null);
@@ -7,7 +7,7 @@ const SnakeGameComponent = () => {
 
   useEffect(() => {
     const fetchGameState = async () => {
-      const state = await snakeGame.move();
+      const state = await game_backend.move();
       setGameState(state);
     };
 
@@ -20,19 +20,19 @@ const SnakeGameComponent = () => {
       switch (e.key) {
         case 'ArrowUp':
           setDirection('Up');
-          snakeGame.changeDirection({ direction: 'Up' });
+          game_backend.changeDirection({ Up :null });
           break;
         case 'ArrowDown':
           setDirection('Down');
-          snakeGame.changeDirection({ direction: 'Down' });
+          game_backend.changeDirection({ Down: null});
           break;
         case 'ArrowLeft':
           setDirection('Left');
-          snakeGame.changeDirection({ direction: 'Left' });
+          game_backend.changeDirection({ Left: null });
           break;
         case 'ArrowRight':
           setDirection('Right');
-          snakeGame.changeDirection({ direction: 'Right' });
+          game_backend.changeDirection({ Right:null });
           break;
         default:
           break;
@@ -74,7 +74,7 @@ const SnakeGameComponent = () => {
           })
         )}
       </div>
-      {gameState.gameOver && <button onClick={() => snakeGame.reset()}>Play Again</button>}
+      {gameState.gameOver && <button onClick={() => game_backend.reset()}>Play Again</button>}
     </div>
   );
 };

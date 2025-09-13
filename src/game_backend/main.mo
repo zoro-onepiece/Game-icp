@@ -1,5 +1,5 @@
 import Nat "mo:base/Nat";
-import Array "mo:core/Array";
+import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Int "mo:base/Int";
 persistent actor {
@@ -33,13 +33,13 @@ persistent actor {
 
   // Move the snake
 
-public shared func move() : async GameState {
+  public shared func move() : async GameState {
   if (gameState.gameOver) {
     return gameState;
   };
 
   let head = gameState.snake[0];
-  let newHead = switch (gameState.direction) {
+  let newHead : Position = switch (gameState.direction) {
     case (#Up) { { x = head.x; y = head.y - 1 } };
     case (#Down) { { x = head.x; y = head.y + 1 } };
     case (#Left) { { x = head.x - 1; y = head.y } };
@@ -70,14 +70,17 @@ public shared func move() : async GameState {
       food = { x = Int.abs(Time.now() % 30); y = Int.abs(Time.now() % 30) };
       score = gameState.score + 1;
     };
-    [newHead] # gameState.snake;
+    // Create new snake by prepending new head
+    Array.append<Position>([newHead], gameState.snake)
   } else {
-    // Slice the snake's body (excluding the last segment)
-    let body = Array.tabulate<Position>(
-      gameState.snake.size() - 1,
-      func(i) { gameState.snake[i] }
-    );
-    [newHead] # body;
+    // Create new snake by prepending new head and removing tail
+    Array.append<Position>(
+      [newHead],
+      Array.tabulate<Position>(
+        gameState.snake.size() - 1,
+        func(i) { gameState.snake[i] }
+      )
+    )
   };
 
   gameState := { gameState with snake = newSnake };
@@ -100,21 +103,3 @@ public shared func move() : async GameState {
 
 };
 
-// github copilot code :
-// let newHead : Position = { x = newHead.x; y = newHead.y }; // Ensure type Position
-// let newSnake = if (newHead.x == gameState.food.x and newHead.y == gameState.food.y) {
-//   // Generate new food
-//   gameState := {
-//     gameState with
-//     food = { x = Int.abs(Time.now() % 30); y = Int.abs(Time.now() % 30) };
-//     score = gameState.score + 1;
-//   };
-//   [newHead] # gameState.snake;
-// } else {
-//   // Slice the snake's body (excluding the last segment)
-//   let body = Array.tabulate<Position>(
-//     gameState.snake.size() - 1,
-//     func(i) { gameState.snake[i] }
-//   );
-//   [newHead] # body;
-// };
