@@ -6,7 +6,11 @@ const GRID_SIZE = 30;
 const INITIAL_SNAKE = [{ x: 5, y: 5 }];
 const INITIAL_DIRECTION = 'Right';
 const INITIAL_FOOD = { x: 10, y: 10 };
-const INITIAL_OBSTACLES = [{ x: 15, y: 15 }, { x: 20, y: 20 }];
+const INITIAL_OBSTACLES = [
+    { x: 2, y: 2 }, { x: 2, y: 3 }, 
+  { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 },
+  
+  { x: 15, y: 15 }, { x: 20, y: 20 }];
 const MOVE_DELAY = 100; // Adjusted to 100ms for Nokia-like feel (faster than 200ms, slower than 50ms for control)
 const OPPOSITE_DIRECTIONS = {
   Up: 'Down',
@@ -169,7 +173,7 @@ const SnakeGame = () => {
   return (
     <div className="game-container">
       <div className="game-header">
-        <h1>🐍 ICP Snake Game</h1>
+        <h1>🐍 Infinity Snake</h1>
         <div className="score-board">
           <span>Score: {score}</span>
         </div>
