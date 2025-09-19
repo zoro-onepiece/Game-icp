@@ -5,6 +5,7 @@
       "type": "motoko"
     },
     "game_frontend": {
+      "build": "npm install --workspace game_frontend && npm run build --workspace game_frontend",
       "dependencies": [
         "game_backend"
       ],
