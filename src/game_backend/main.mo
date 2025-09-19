@@ -3,7 +3,8 @@ import Array "mo:base/Array";
 import Time "mo:base/Time";
 import Int "mo:base/Int";
 persistent actor {
- 
+ var pendingDirection : ?Direction = null;
+
  type Direction = { #Up; #Down; #Left; #Right };
   type Position = { x : Int; y : Int };
   type GameState = {
@@ -27,7 +28,8 @@ persistent actor {
   // Update the snake's direction
   public shared func changeDirection(newDirection : Direction) : async () {
     if (not gameState.gameOver) {
-      gameState := { gameState with direction = newDirection };
+      // gameState := { gameState with direction = newDirection };
+      pendingDirection := ?newDirection;
     };
   };
 
@@ -37,6 +39,16 @@ persistent actor {
   if (gameState.gameOver) {
     return gameState;
   };
+  
+ switch (pendingDirection) {
+    case (?dir) {
+      gameState := { gameState with direction = dir };
+      pendingDirection := null;
+    };
+    case (null) {};
+  };
+
+
 
   let head = gameState.snake[0];
   let newHead : Position = switch (gameState.direction) {
@@ -63,27 +75,29 @@ persistent actor {
   };
 
   // Check if food is eaten
-  let newSnake = if (newHead.x == gameState.food.x and newHead.y == gameState.food.y) {
+  var newSnake : [Position] = [];
+  var newFood =  gameState.food;
+  var newScore = gameState.score;
     // Generate new food
-    gameState := {
-      gameState with
-      food = { x = Int.abs(Time.now() % 30); y = Int.abs(Time.now() % 30) };
-      score = gameState.score + 1;
-    };
-    // Create new snake by prepending new head
-    Array.append<Position>([newHead], gameState.snake)
+     if (newHead.x == gameState.food.x and newHead.y == gameState.food.y) {
+    // Snake eats food - grow by keeping tail
+    newSnake := Array.append([newHead], gameState.snake);
+    newFood := { x = Int.abs(Time.now() % 30); y = Int.abs(Time.now() % 30) };
+    newScore := gameState.score + 1;
   } else {
-    // Create new snake by prepending new head and removing tail
-    Array.append<Position>(
-      [newHead],
-      Array.tabulate<Position>(
-        gameState.snake.size() - 1,
-        func(i) { gameState.snake[i] }
-      )
-    )
+    // Move normally - remove tail
+    newSnake := Array.append([newHead], Array.tabulate<Position>(
+      gameState.snake.size() - 1,
+      func(i) { gameState.snake[i] }
+    ));
   };
 
-  gameState := { gameState with snake = newSnake };
+  gameState := { 
+    gameState with 
+    snake = newSnake;
+    food = newFood;
+    score = newScore;
+  };
   return gameState;
 };
 

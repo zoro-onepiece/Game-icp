@@ -1,82 +1,215 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { game_backend } from '../../../declarations/game_backend';
+import '../SnakeGame.scss';
 
-const SnakeGameComponent = () => {
-  const [gameState, setGameState] = useState(null);
-  const [direction, setDirection] = useState('Right');
+const GRID_SIZE = 30;
+const INITIAL_SNAKE = [{ x: 5, y: 5 }];
+const INITIAL_DIRECTION = 'Right';
+const INITIAL_FOOD = { x: 10, y: 10 };
+const INITIAL_OBSTACLES = [{ x: 15, y: 15 }, { x: 20, y: 20 }];
+const MOVE_DELAY = 100; // Adjusted to 100ms for Nokia-like feel (faster than 200ms, slower than 50ms for control)
+const OPPOSITE_DIRECTIONS = {
+  Up: 'Down',
+  Down: 'Up',
+  Left: 'Right',
+  Right: 'Left'
+};
 
-  useEffect(() => {
-    const fetchGameState = async () => {
-      const state = await game_backend.move();
-      setGameState(state);
-    };
+const SnakeGame = () => {
+  const [snake, setSnake] = useState(INITIAL_SNAKE);
+  const [direction, setDirection] = useState(INITIAL_DIRECTION);
+  const [food, setFood] = useState(INITIAL_FOOD);
+  const [obstacles] = useState(INITIAL_OBSTACLES);
+  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const gameLoopRef = useRef(null);
+  const nextDirectionRef = useRef(null);
 
-    const gameLoop = setInterval(fetchGameState, 200);
-    return () => clearInterval(gameLoop);
+  // Generate random food position
+  const generateFood = useCallback(() => {
+    let newFood;
+    do {
+      newFood = {
+        x: Math.floor(Math.random() * GRID_SIZE),
+        y: Math.floor(Math.random() * GRID_SIZE)
+      };
+    } while (
+      snake.some(segment => segment.x === newFood.x && segment.y === newFood.y) ||
+      obstacles.some(obs => obs.x === newFood.x && obs.y === newFood.y)
+    );
+    return newFood;
+  }, [snake]);
+
+  // Initialize or reset game
+  const initializeGame = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Optional: Call backend reset if needed for persistence
+      // await game_backend.reset();
+      
+      setSnake(INITIAL_SNAKE);
+      setDirection(INITIAL_DIRECTION);
+      setFood(INITIAL_FOOD);
+      setScore(0);
+      setGameOver(false);
+      nextDirectionRef.current = null;
+    } catch (err) {
+      console.error('Initialization error:', err);
+      setError('Failed to initialize game: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  // Game loop
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    if (gameOver || loading) return;
+
+    const moveSnake = () => {
+      // Apply next direction if valid (prevent 180-degree turns)
+      if (nextDirectionRef.current && nextDirectionRef.current !== OPPOSITE_DIRECTIONS[direction]) {
+        setDirection(nextDirectionRef.current);
+        nextDirectionRef.current = null;
+      }
+
+      const head = snake[0];
+      let newHead;
+      switch (direction) {
+        case 'Up': newHead = { x: head.x, y: head.y - 1 }; break;
+        case 'Down': newHead = { x: head.x, y: head.y + 1 }; break;
+        case 'Left': newHead = { x: head.x - 1, y: head.y }; break;
+        case 'Right': newHead = { x: head.x + 1, y: head.y }; break;
+      }
+
+      // Check wall collision
+      if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
+        setGameOver(true);
+        return;
+      }
+
+      // Check self collision
+      if (snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
+        setGameOver(true);
+        return;
+      }
+
+      // Check obstacle collision
+      if (obstacles.some(obs => obs.x === newHead.x && obs.y === newHead.y)) {
+        setGameOver(true);
+        return;
+      }
+
+      let newSnake = [newHead, ...snake];
+
+      // Check food
+      if (newHead.x === food.x && newHead.y === food.y) {
+        setScore(prev => prev + 1);
+        setFood(generateFood());
+      } else {
+        newSnake.pop(); // Remove tail if no food eaten
+      }
+
+      setSnake(newSnake);
+    };
+
+    gameLoopRef.current = setInterval(moveSnake, MOVE_DELAY);
+
+    return () => clearInterval(gameLoopRef.current);
+  }, [snake, direction, food, obstacles, gameOver, loading, generateFood]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (gameOver || loading) return;
+
+      let newDir;
       switch (e.key) {
-        case 'ArrowUp':
-          setDirection('Up');
-          game_backend.changeDirection({ Up :null });
-          break;
-        case 'ArrowDown':
-          setDirection('Down');
-          game_backend.changeDirection({ Down: null});
-          break;
-        case 'ArrowLeft':
-          setDirection('Left');
-          game_backend.changeDirection({ Left: null });
-          break;
-        case 'ArrowRight':
-          setDirection('Right');
-          game_backend.changeDirection({ Right:null });
-          break;
-        default:
-          break;
+        case 'ArrowUp': newDir = 'Up'; break;
+        case 'ArrowDown': newDir = 'Down'; break;
+        case 'ArrowLeft': newDir = 'Left'; break;
+        case 'ArrowRight': newDir = 'Right'; break;
+        case 'r':
+        case 'R':
+          initializeGame();
+          return;
+        default: return;
+      }
+
+      // Queue the direction change
+      if (newDir !== direction && newDir !== OPPOSITE_DIRECTIONS[direction]) {
+        nextDirectionRef.current = newDir;
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [direction, gameOver, loading, initializeGame]);
 
-  const handleMouseMove = (e) => {
-    // Implement mouse-based direction change logic here
+  // Mobile controls (simulate key presses)
+  const simulateKeyPress = (key) => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key }));
   };
 
-  if (!gameState) return <div>Loading...</div>;
+  // Initialize on mount
+  useEffect(() => {
+    initializeGame();
+  }, [initializeGame]);
+
+  if (loading) {
+    return <div className="game-container">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="game-container">Error: {error}</div>;
+  }
 
   return (
-    <div onMouseMove={handleMouseMove}>
-      <h1>Snake Game</h1>
-      <p>Score: {gameState.score}</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(30, 20px)' }}>
-        {Array.from({ length: 30 }).map((_, y) =>
-          Array.from({ length: 30 }).map((_, x) => {
-            const isSnake = gameState.snake.some(p => p.x === x && p.y === y);
-            const isFood = gameState.food.x === x && gameState.food.y === y;
-            const isObstacle = gameState.obstacles.some(p => p.x === x && p.y === y);
+    <div className="game-container">
+      <div className="game-header">
+        <h1>🐍 ICP Snake Game</h1>
+        <div className="score-board">
+          <span>Score: {score}</span>
+        </div>
+      </div>
 
-            return (
-              <div
-                key={`${x}-${y}`}
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: isSnake ? 'green' : isFood ? 'red' : isObstacle ? 'gray' : 'white',
-                  border: '1px solid black',
-                }}
-              />
-            );
+      <div className="game-grid">
+        {Array.from({ length: GRID_SIZE }, (_, y) =>
+          Array.from({ length: GRID_SIZE }, (_, x) => {
+            const isSnake = snake.some(s => s.x === x && s.y === y);
+            const isHead = snake[0]?.x === x && snake[0]?.y === y;
+            const isFood = food.x === x && food.y === y;
+            const isObstacle = obstacles.some(o => o.x === x && o.y === y);
+
+            let cellClass = 'empty';
+            if (isHead) cellClass = 'snake-head';
+            else if (isSnake) cellClass = 'snake-body';
+            else if (isFood) cellClass = 'food';
+            else if (isObstacle) cellClass = 'obstacle';
+
+            return <div key={`${x}-${y}`} className={`grid-cell ${cellClass}`} />;
           })
         )}
       </div>
-      {gameState.gameOver && <button onClick={() => game_backend.reset()}>Play Again</button>}
+
+      {gameOver && (
+        <div className="game-over-overlay">
+          <h2>Game Over!</h2>
+          <p>Score: {score}</p>
+          <button onClick={initializeGame}>Play Again</button>
+        </div>
+      )}
+
+      <div className="mobile-controls">
+        <button onClick={() => simulateKeyPress('ArrowUp')}>↑</button>
+        <button onClick={() => simulateKeyPress('ArrowLeft')}>←</button>
+        <button onClick={() => simulateKeyPress('ArrowDown')}>↓</button>
+        <button onClick={() => simulateKeyPress('ArrowRight')}>→</button>
+      </div>
     </div>
   );
 };
 
-export default SnakeGameComponent;
+export default SnakeGame;
