@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { game_backend } from '../../../declarations/game_backend';
 import '../SnakeGame.scss';
-
+import eatSound from "../sounds/eat.wav";
+import gameOverSound from "../sounds/game-over.mp3";
 const GRID_SIZE = 30;
 const INITIAL_SNAKE = [{ x: 5, y: 5 }];
 const INITIAL_DIRECTION = 'Right';
@@ -30,6 +31,32 @@ const SnakeGame = () => {
   const [error, setError] = useState('');
   const gameLoopRef = useRef(null);
   const nextDirectionRef = useRef(null);
+  const eatAudioRef = useRef(null);
+  const gameOverAudioRef = useRef(null);
+
+
+   useEffect(() => {
+    eatAudioRef.current = new Audio(eatSound);
+    gameOverAudioRef.current = new Audio(gameOverSound);
+    
+    // Preload sounds
+    eatAudioRef.current.load();
+    gameOverAudioRef.current.load();
+  }, []);
+
+ const playEatSound = useCallback(() => {
+    if (eatAudioRef.current) {
+      eatAudioRef.current.currentTime = 0;
+      eatAudioRef.current.play().catch(e => console.log("Audio play failed:", e));
+    }
+  }, []);
+
+  const playGameOverSound = useCallback(() => {
+    if (gameOverAudioRef.current) {
+      gameOverAudioRef.current.currentTime = 0;
+      gameOverAudioRef.current.play().catch(e => console.log("Audio play failed:", e));
+    }
+  }, []);
 
   // Generate random food position
   const generateFood = useCallback(() => {
@@ -91,18 +118,21 @@ const SnakeGame = () => {
       // Check wall collision
       if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
         setGameOver(true);
+        playGameOverSound();
         return;
       }
 
       // Check self collision
       if (snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
         setGameOver(true);
+        playGameOverSound();
         return;
       }
 
       // Check obstacle collision
       if (obstacles.some(obs => obs.x === newHead.x && obs.y === newHead.y)) {
         setGameOver(true);
+        playGameOverSound();
         return;
       }
 
@@ -112,6 +142,7 @@ const SnakeGame = () => {
       if (newHead.x === food.x && newHead.y === food.y) {
         setScore(prev => prev + 1);
         setFood(generateFood());
+        playEatSound();
       } else {
         newSnake.pop(); // Remove tail if no food eaten
       }
@@ -213,6 +244,9 @@ const SnakeGame = () => {
         <button onClick={() => simulateKeyPress('ArrowRight')}>→</button>
       </div>
     </div>
+
+
+
   );
 };
 
