@@ -1,3 +1,7 @@
+# `Notes by Author of Repo`
+
+Use Arrow keys on keyboard to move the snake .For mobile ,Arrow buttons will show up.PR's and Issues are welcome!
+
 # `game`
 
 Welcome to your new `game` project and to the Internet Computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
