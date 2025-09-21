@@ -2,11 +2,11 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { game_backend } from '../../../declarations/game_backend';
 
 import '../SnakeGame.scss';
-import eatSound from "../sounds/eat.wav";
-import gameOverSound from "../sounds/game-over.mp3";
+// import eatSound from "../sounds/eat.wav";
+// import gameOverSound from "../sounds/game-over.mp3";
 // Instead of importing, use public paths
-// const eatSound = '/sounds/eat.wav';
-// const gameOverSound = '/sounds/game-over.mp3';
+const eatSound = '/sounds/eat.wav';
+const gameOverSound = '/sounds/game-over.mp3';
 
 const GRID_SIZE = 30;
 const INITIAL_SNAKE = [{ x: 5, y: 5 }];
