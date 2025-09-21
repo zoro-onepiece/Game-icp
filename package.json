@@ -17,5 +17,9 @@
   ],
   "devDependencies": {
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@dfinity/agent": "^3.2.6",
+    "@dfinity/assets": "^3.2.6"
   }
 }

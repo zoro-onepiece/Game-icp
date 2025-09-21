@@ -1,8 +1,13 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { game_backend } from '../../../declarations/game_backend';
+
 import '../SnakeGame.scss';
 import eatSound from "../sounds/eat.wav";
 import gameOverSound from "../sounds/game-over.mp3";
+// Instead of importing, use public paths
+// const eatSound = '/sounds/eat.wav';
+// const gameOverSound = '/sounds/game-over.mp3';
+
 const GRID_SIZE = 30;
 const INITIAL_SNAKE = [{ x: 5, y: 5 }];
 const INITIAL_DIRECTION = 'Right';
@@ -10,8 +15,8 @@ const INITIAL_FOOD = { x: 10, y: 10 };
 const INITIAL_OBSTACLES = [
     { x: 2, y: 2 }, { x: 2, y: 3 }, 
   { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 },
-  
   { x: 15, y: 15 }, { x: 20, y: 20 }];
+
 const MOVE_DELAY = 100; // Adjusted to 100ms for Nokia-like feel (faster than 200ms, slower than 50ms for control)
 const OPPOSITE_DIRECTIONS = {
   Up: 'Down',
@@ -21,6 +26,7 @@ const OPPOSITE_DIRECTIONS = {
 };
 
 const SnakeGame = () => {
+
   const [snake, setSnake] = useState(INITIAL_SNAKE);
   const [direction, setDirection] = useState(INITIAL_DIRECTION);
   const [food, setFood] = useState(INITIAL_FOOD);
@@ -34,6 +40,7 @@ const SnakeGame = () => {
   const eatAudioRef = useRef(null);
   const gameOverAudioRef = useRef(null);
 
+  
 
    useEffect(() => {
     eatAudioRef.current = new Audio(eatSound);
@@ -243,6 +250,13 @@ const SnakeGame = () => {
         <button onClick={() => simulateKeyPress('ArrowDown')}>↓</button>
         <button onClick={() => simulateKeyPress('ArrowRight')}>→</button>
       </div>
+
+      <audio ref={eatAudioRef} preload="auto">
+        <source src={eatSound} type="audio/wav" />
+      </audio>
+      <audio ref={gameOverAudioRef} preload="auto">
+        <source src={gameOverSound} type="audio/wav" />
+      </audio>
     </div>
 
 
