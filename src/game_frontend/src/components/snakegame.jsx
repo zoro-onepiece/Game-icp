@@ -1,12 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { game_backend } from '../../../declarations/game_backend';
-
 import '../SnakeGame.scss';
-// import eatSound from "../sounds/eat.wav";
-// import gameOverSound from "../sounds/game-over.mp3";
-// Instead of importing, use public paths
-const eatSound = '/sounds/eat.wav';
-const gameOverSound = '/sounds/game-over.mp3';
 
 const GRID_SIZE = 30;
 const INITIAL_SNAKE = [{ x: 5, y: 5 }];
@@ -15,9 +9,9 @@ const INITIAL_FOOD = { x: 10, y: 10 };
 const INITIAL_OBSTACLES = [
     { x: 2, y: 2 }, { x: 2, y: 3 }, 
   { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 },
-  { x: 15, y: 15 }, { x: 20, y: 20 }];
-
-const MOVE_DELAY = 100; // Adjusted to 100ms for Nokia-like feel (faster than 200ms, slower than 50ms for control)
+  { x: 15, y: 15 }, { x: 20, y: 20 }
+];
+const MOVE_DELAY = 100;
 const OPPOSITE_DIRECTIONS = {
   Up: 'Down',
   Down: 'Up',
@@ -26,7 +20,6 @@ const OPPOSITE_DIRECTIONS = {
 };
 
 const SnakeGame = () => {
-
   const [snake, setSnake] = useState(INITIAL_SNAKE);
   const [direction, setDirection] = useState(INITIAL_DIRECTION);
   const [food, setFood] = useState(INITIAL_FOOD);
@@ -34,36 +27,8 @@ const SnakeGame = () => {
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const gameLoopRef = useRef(null);
   const nextDirectionRef = useRef(null);
-  const eatAudioRef = useRef(null);
-  const gameOverAudioRef = useRef(null);
-
-  
-
-   useEffect(() => {
-    eatAudioRef.current = new Audio(eatSound);
-    gameOverAudioRef.current = new Audio(gameOverSound);
-    
-    // Preload sounds
-    eatAudioRef.current.load();
-    gameOverAudioRef.current.load();
-  }, []);
-
- const playEatSound = useCallback(() => {
-    if (eatAudioRef.current) {
-      eatAudioRef.current.currentTime = 0;
-      eatAudioRef.current.play().catch(e => console.log("Audio play failed:", e));
-    }
-  }, []);
-
-  const playGameOverSound = useCallback(() => {
-    if (gameOverAudioRef.current) {
-      gameOverAudioRef.current.currentTime = 0;
-      gameOverAudioRef.current.play().catch(e => console.log("Audio play failed:", e));
-    }
-  }, []);
 
   // Generate random food position
   const generateFood = useCallback(() => {
@@ -78,16 +43,12 @@ const SnakeGame = () => {
       obstacles.some(obs => obs.x === newFood.x && obs.y === newFood.y)
     );
     return newFood;
-  }, [snake]);
+  }, [snake, obstacles]);
 
   // Initialize or reset game
   const initializeGame = useCallback(async () => {
     setLoading(true);
-    setError('');
     try {
-      // Optional: Call backend reset if needed for persistence
-      // await game_backend.reset();
-      
       setSnake(INITIAL_SNAKE);
       setDirection(INITIAL_DIRECTION);
       setFood(INITIAL_FOOD);
@@ -96,7 +57,6 @@ const SnakeGame = () => {
       nextDirectionRef.current = null;
     } catch (err) {
       console.error('Initialization error:', err);
-      setError('Failed to initialize game: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -107,7 +67,6 @@ const SnakeGame = () => {
     if (gameOver || loading) return;
 
     const moveSnake = () => {
-      // Apply next direction if valid (prevent 180-degree turns)
       if (nextDirectionRef.current && nextDirectionRef.current !== OPPOSITE_DIRECTIONS[direction]) {
         setDirection(nextDirectionRef.current);
         nextDirectionRef.current = null;
@@ -120,26 +79,14 @@ const SnakeGame = () => {
         case 'Down': newHead = { x: head.x, y: head.y + 1 }; break;
         case 'Left': newHead = { x: head.x - 1, y: head.y }; break;
         case 'Right': newHead = { x: head.x + 1, y: head.y }; break;
+        default: newHead = head;
       }
 
-      // Check wall collision
-      if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE) {
+      // Check collisions
+      if (newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE ||
+          snake.some(segment => segment.x === newHead.x && segment.y === newHead.y) ||
+          obstacles.some(obs => obs.x === newHead.x && obs.y === newHead.y)) {
         setGameOver(true);
-        playGameOverSound();
-        return;
-      }
-
-      // Check self collision
-      if (snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
-        setGameOver(true);
-        playGameOverSound();
-        return;
-      }
-
-      // Check obstacle collision
-      if (obstacles.some(obs => obs.x === newHead.x && obs.y === newHead.y)) {
-        setGameOver(true);
-        playGameOverSound();
         return;
       }
 
@@ -149,16 +96,14 @@ const SnakeGame = () => {
       if (newHead.x === food.x && newHead.y === food.y) {
         setScore(prev => prev + 1);
         setFood(generateFood());
-        playEatSound();
       } else {
-        newSnake.pop(); // Remove tail if no food eaten
+        newSnake.pop();
       }
 
       setSnake(newSnake);
     };
 
     gameLoopRef.current = setInterval(moveSnake, MOVE_DELAY);
-
     return () => clearInterval(gameLoopRef.current);
   }, [snake, direction, food, obstacles, gameOver, loading, generateFood]);
 
@@ -180,7 +125,6 @@ const SnakeGame = () => {
         default: return;
       }
 
-      // Queue the direction change
       if (newDir !== direction && newDir !== OPPOSITE_DIRECTIONS[direction]) {
         nextDirectionRef.current = newDir;
       }
@@ -190,12 +134,11 @@ const SnakeGame = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [direction, gameOver, loading, initializeGame]);
 
-  // Mobile controls (simulate key presses)
+  // Mobile controls
   const simulateKeyPress = (key) => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key }));
   };
 
-  // Initialize on mount
   useEffect(() => {
     initializeGame();
   }, [initializeGame]);
@@ -204,14 +147,10 @@ const SnakeGame = () => {
     return <div className="game-container">Loading...</div>;
   }
 
-  if (error) {
-    return <div className="game-container">Error: {error}</div>;
-  }
-
   return (
     <div className="game-container">
       <div className="game-header">
-        <h1>🐍 Infinity Snake</h1>
+        <h1>🐍 Snake Game</h1> {/* Changed from "Infinity Snake" to "Snake Game" */}
         <div className="score-board">
           <span>Score: {score}</span>
         </div>
@@ -250,17 +189,7 @@ const SnakeGame = () => {
         <button onClick={() => simulateKeyPress('ArrowDown')}>↓</button>
         <button onClick={() => simulateKeyPress('ArrowRight')}>→</button>
       </div>
-
-      <audio ref={eatAudioRef} preload="auto">
-        <source src={eatSound} type="audio/wav" />
-      </audio>
-      <audio ref={gameOverAudioRef} preload="auto">
-        <source src={gameOverSound} type="audio/wav" />
-      </audio>
     </div>
-
-
-
   );
 };
 
